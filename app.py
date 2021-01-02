@@ -1,4 +1,6 @@
+import datetime
 import os
+import time
 
 import git
 import tweepy
@@ -18,6 +20,8 @@ auth.set_access_token(environ.get("TWITTER_KEY"),
                       environ.get("TWITTER_SECRET"))
 
 api = tweepy.API(auth)
+
+UPDATE_INTERVAL = 180.0 # seconds
 
 TWEET_LIMIT = 280
 
@@ -101,5 +105,10 @@ def main():
             import traceback; traceback.print_exception(type(e), e, e.__traceback__)
             break
 
+
 if __name__ == "__main__":
-    main()
+    starttime = time.time()
+    while True:
+        print("tick", datetime.datetime.now())
+        main()
+        time.sleep(UPDATE_INTERVAL - ((time.time() - starttime) % UPDATE_INTERVAL))
