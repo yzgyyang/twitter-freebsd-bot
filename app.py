@@ -5,6 +5,7 @@ import tweepy
 
 from commits import BSDCommit
 
+
 environ = os.environ
 
 repo_path = environ.get("GIT_REPO_PATH")
@@ -21,9 +22,14 @@ api = tweepy.API(auth)
 TWEET_LIMIT = 280
 
 TWEET_TEMPLATE = "{author}@ on {basedirs} ({sha}):\n\n"
-TWEET_TEMPLATE += "{title}\n\n"
-TWEET_TEMPLATE += "{body}\n"
+TWEET_TEMPLATE += "{msg}\n\n"
 TWEET_TEMPLATE += "https://cgit.freebsd.org/src/commit/?id={sha}"
+
+
+class SafeDict(dict):
+    def __missing__(self, key):
+        return '{' + key + '}'
+
 
 def post_new(commit):    
     diff_raw = g.diff("--dirstat=files,0", f"{commit.commit_sha}..{commit.commit_sha}^")
@@ -43,20 +49,18 @@ def post_new(commit):
         basedirs = basedirs[:3]
         basedirs.append("..")
     
-    commit_info = {
-        "author": commit.author_handle,
-        "sha": commit.commit_sha_short,
-        "title": commit.commit_msg_title,
-        "basedirs": " ".join(basedirs),
-        "body": "{body}"
-    }
+    commit_info = SafeDict(
+        author=commit.author_handle,
+        sha=commit.commit_sha_short,
+        basedirs=" ".join(basedirs),
+    )
 
-    cur_tweet = TWEET_TEMPLATE.format(**commit_info)
+    cur_tweet = TWEET_TEMPLATE.format_map(commit_info)
     char_count_left = TWEET_LIMIT - len(cur_tweet)
-    commit_msg_body = commit.commit_msg_body
+    commit_msg_body = commit.commit_msg_title + "\n\n" + commit.commit_msg_body
     if len(commit_msg_body) > char_count_left:
         commit_msg_body = commit_msg_body[:char_count_left] + "...\n"
-    cur_tweet = cur_tweet.format(body=commit_msg_body)
+    cur_tweet = cur_tweet.format_map(SafeDict(msg=commit_msg_body))
 
     api.update_status(cur_tweet, hide_media=True)
 
@@ -77,10 +81,12 @@ def get_git_commits_from(commit_sha):
             cur_log = []
         if raw_log.strip():
             cur_log.append(raw_log)
+    if cur_log:
+        commits.append(BSDCommit(commit_log=cur_log))
     return commits
 
 
-if __name__ == "__main__":
+def main():
     last_sha = get_last_tweet_commit_sha()
     commits = get_git_commits_from(last_sha)
 
@@ -91,5 +97,9 @@ if __name__ == "__main__":
             post_new(commit)
             print(f"({count}/{len(commits)}): tweeted {commit.commit_sha_short} by {commit.author_handle}")
         except Exception as e:
-            print(vars(commit), e)
-            exit(1)
+            print(vars(commit))
+            import traceback; traceback.print_exception(type(e), e, e.__traceback__)
+            break
+
+if __name__ == "__main__":
+    main()
