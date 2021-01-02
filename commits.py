@@ -1,10 +1,21 @@
 META = (
     "PR:",
     "Reviewed by:",
+    "Reviewed-by:",
     "Approved by:",
+    "Approved-by:",
+    "Submitted by:",
+    "Submitted-by:",
     "Reported by:",
+    "Reported-by:",
     "Sponsored by:",
+    "Sponsored-by:",
+    "Tested by:",
+    "Tested-by:",
+    "MFC after:",
+    "MFC-after:",
     "Differential Revision:",
+    "Differential-Revision:",
 )
 
 
@@ -34,12 +45,17 @@ class BSDCommit:
             else:
                 break
 
-        for idx in range(3, len(commit_log)):
+        # commit message title and body
+        for idx in range(idx, len(commit_log)):
             if not self.commit_msg_title:
                 self.commit_msg_title = commit_log[idx].strip()
                 continue
             if commit_log[idx].strip().startswith(META):
-                self.commit_meta.append(commit_log[idx].strip())
-                continue
+                break
             self.commit_msg_body += commit_log[idx].strip()
             self.commit_msg_body += "\n"
+
+        # commit meta tags
+        for idx in range(idx, len(commit_log)):
+            if commit_log[idx].strip():
+                self.commit_meta.append(commit_log[idx].strip())
