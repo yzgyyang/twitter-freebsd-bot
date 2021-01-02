@@ -18,20 +18,42 @@ auth.set_access_token(environ.get("TWITTER_KEY"),
 
 api = tweepy.API(auth)
 
-def post_new(commit):
-    TO_BE_FILLED = "{sha}: {title}\n{body}\nBy {author}@\ngh: https://github.com/freebsd/freebsd-src/commit/{sha}\ncgit: https://cgit.freebsd.org/src/commit/?id={sha}"
+TWEET_TEMPLATE = "{author}@ on {basedirs} (commit {sha}):\n\n"
+TWEET_TEMPLATE += "{title}\n\n"
+TWEET_TEMPLATE += "{body}\n"
+TWEET_TEMPLATE += "full: https://cgit.freebsd.org/src/commit/?id={sha}"
+
+def post_new(commit):    
+    diff_raw = g.diff("--dirstat=files,0", f"{commit.commit_sha}..{commit.commit_sha}^")
+    if not diff_raw:
+        # only committed to the root directory
+        basedirs = ["."]
+    else:
+        basedirs = []
+        for line_raw in diff_raw.split("\n"):
+            line = line_raw.strip().split(" ")[1]
+            if line.endswith("/"):
+                line = line[:-1]
+            basedirs.append(line)
+
+    # too many directories
+    if len(basedirs) >= 4:
+        basedirs = basedirs[:3]
+        basedirs.append("..")
+    
     commit_info = {
         "author": commit.author_handle,
         "sha": commit.commit_sha_short,
         "title": commit.commit_msg_title,
-        "body": commit.commit_msg_body,
+        "body": commit.commit_msg_body[:150] + "...\n" if len(commit.commit_msg_body) > 151 else commit.commit_msg_body,
+        "basedirs": " ".join(basedirs),
     }
 
-    api.update_status(TO_BE_FILLED.format(**commit_info), hide_media=True)
+    api.update_status(TWEET_TEMPLATE.format(**commit_info), hide_media=True)
 
 def get_last_tweet_commit_sha():
-    tweet = api.user_timeline(count=1)[0]
-    return tweet.text.split(":")[0]
+    tweet = api.user_timeline(count=1)[0].text
+    return tweet.split("\n")[0].split("(commit ")[1].split(")")[0]
 
 def get_git_commits_from(commit_sha):
     repo.remotes.origin.pull()

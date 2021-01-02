@@ -10,13 +10,13 @@ META = (
 
 class BSDCommit:
     def __init__(self, commit_log: list):
-        self.commit_sha = None
-        self.commit_sha_short = None
-        self.author = None
-        self.author_handle = None
-        self.date = None
-        self.commit_msg_title = None
-        self.commit_msg_body = None
+        self.commit_sha = ""
+        self.commit_sha_short = ""
+        self.author = ""
+        self.author_handle = ""
+        self.date = ""
+        self.commit_msg_title = ""
+        self.commit_msg_body = ""
         self.commit_meta = []
 
         for idx, msg in enumerate(commit_log):
@@ -41,7 +41,5 @@ class BSDCommit:
             if commit_log[idx].strip().startswith(META):
                 self.commit_meta.append(commit_log[idx].strip())
                 continue
-            if not self.commit_msg_body:
-                self.commit_msg_body = ""
-            self.commit_msg_body += commit_log[idx]
+            self.commit_msg_body += commit_log[idx].strip()
             self.commit_msg_body += "\n"
