@@ -8,6 +8,8 @@ META = (
     "Submitted-by:",
     "Reported by:",
     "Reported-by:",
+    "Obtained from:",
+    "Obtained-from:",
     "Sponsored by:",
     "Sponsored-by:",
     "Tested by:",

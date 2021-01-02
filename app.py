@@ -82,9 +82,13 @@ def get_git_commits_from(commit_sha):
 if __name__ == "__main__":
     last_sha = get_last_tweet_commit_sha()
     commits = get_git_commits_from(last_sha)
-    for commit in commits[:1]:
+
+    count = 0
+    for commit in commits:
+        count += 1
         try:
             post_new(commit)
+            print(f"({count}/{len(commits)}): tweeted {commit.commit_sha_short} by {commit.author_handle}")
         except Exception as e:
             print(vars(commit), e)
             exit(1)
