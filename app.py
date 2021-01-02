@@ -20,10 +20,10 @@ api = tweepy.API(auth)
 
 TWEET_LIMIT = 280
 
-TWEET_TEMPLATE = "{author}@ on {basedirs} (commit {sha}):\n\n"
+TWEET_TEMPLATE = "{author}@ on {basedirs} ({sha}):\n\n"
 TWEET_TEMPLATE += "{title}\n\n"
 TWEET_TEMPLATE += "{body}\n"
-TWEET_TEMPLATE += "full: https://cgit.freebsd.org/src/commit/?id={sha}"
+TWEET_TEMPLATE += "https://cgit.freebsd.org/src/commit/?id={sha}"
 
 def post_new(commit):    
     diff_raw = g.diff("--dirstat=files,0", f"{commit.commit_sha}..{commit.commit_sha}^")
@@ -63,7 +63,7 @@ def post_new(commit):
 
 def get_last_tweet_commit_sha():
     tweet = api.user_timeline(count=1)[0].text
-    return tweet.split("\n")[0].split("(commit ")[1].split(")")[0]
+    return tweet.split("\n")[0].split("(")[1].split(")")[0]
 
 
 def get_git_commits_from(commit_sha):
@@ -78,6 +78,7 @@ def get_git_commits_from(commit_sha):
         if raw_log.strip():
             cur_log.append(raw_log)
     return commits
+
 
 if __name__ == "__main__":
     last_sha = get_last_tweet_commit_sha()
