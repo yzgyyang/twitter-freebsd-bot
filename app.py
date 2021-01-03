@@ -24,6 +24,8 @@ api = tweepy.API(auth)
 UPDATE_INTERVAL = 180.0 # seconds
 
 TWEET_LIMIT = 280
+BASEDIR_LIMIT = 3
+BASEDIR_CHAR_LIMIT = 40
 
 TWEET_TEMPLATE = "{author}@ on {basedirs} ({sha}):\n\n"
 TWEET_TEMPLATE += "{msg}\n\n"
@@ -35,28 +37,35 @@ class SafeDict(dict):
         return '{' + key + '}'
 
 
-def post_new(commit):    
+def post_new(commit):
+    # find basedirs
     diff_raw = g.diff("--dirstat=files,0", f"{commit.commit_sha}..{commit.commit_sha}^")
     if not diff_raw:
         # only committed to the root directory
-        basedirs = ["."]
+        basedirs_list = ["."]
     else:
-        basedirs = []
+        basedirs_list = []
         for line_raw in diff_raw.split("\n"):
             line = line_raw.strip().split(" ")[1]
             if line.endswith("/"):
                 line = line[:-1]
-            basedirs.append(line)
+            basedirs_list.append(line)
 
     # too many directories
-    if len(basedirs) >= 4:
-        basedirs = basedirs[:3]
-        basedirs.append("..")
+    if len(basedirs_list) > BASEDIR_LIMIT:
+        basedirs_list = basedirs_list[:BASEDIR_LIMIT]
+        basedirs_list.append("..")
+
+    basedirs = " ".join(basedirs_list)
+
+    # directory path too long
+    if len(basedirs) > BASEDIR_CHAR_LIMIT:
+        basedirs = basedirs[:BASEDIR_CHAR_LIMIT] + ".."
     
     commit_info = SafeDict(
         author=commit.author_handle,
         sha=commit.commit_sha_short,
-        basedirs=" ".join(basedirs),
+        basedirs=basedirs,
     )
 
     cur_tweet = TWEET_TEMPLATE.format_map(commit_info)
