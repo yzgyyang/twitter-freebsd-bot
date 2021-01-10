@@ -117,7 +117,13 @@ def main():
 
 if __name__ == "__main__":
     starttime = time.time()
+    total, succeeded = 0, 0
     while True:
-        print("tick", datetime.datetime.now())
-        main()
+        print(f"{total - succeeded} failures, tick", datetime.datetime.now())
+        total += 1
+        try:
+            main()
+            succeeded += 1
+        except git.exc.GitCommandError as e:
+            print(e)
         time.sleep(UPDATE_INTERVAL - ((time.time() - starttime) % UPDATE_INTERVAL))
