@@ -27,7 +27,7 @@ TWEET_LIMIT = 280
 BASEDIR_LIMIT = 3
 BASEDIR_CHAR_LIMIT = 40
 
-TWEET_TEMPLATE = "{author}@ on {basedirs} ({sha}):\n\n"
+TWEET_TEMPLATE = "{author_info}{committer_handle}@ on {basedirs} ({sha}):\n\n"
 TWEET_TEMPLATE += "{msg}\n\n"
 TWEET_TEMPLATE += "https://cgit.freebsd.org/src/commit/?id={sha}"
 
@@ -63,7 +63,8 @@ def post_new(commit):
         basedirs = basedirs[:BASEDIR_CHAR_LIMIT] + ".."
     
     commit_info = SafeDict(
-        author=commit.author_handle,
+        author_info="" if commit.author_is_committer else f"{commit.author} via ",
+        committer_handle=commit.committer_handle,
         sha=commit.commit_sha_short,
         basedirs=basedirs,
     )
@@ -85,7 +86,7 @@ def get_last_tweet_commit_sha():
 
 def get_git_commits_from(commit_sha):
     repo.remotes.origin.pull()
-    raw_logs = g.log("--reverse", "--ancestry-path", f"{commit_sha}...main").split("\n")
+    raw_logs = g.log("--reverse", "--ancestry-path", f"{commit_sha}...main", "--pretty=full").split("\n")
     commits = []
     cur_log = []
     for raw_log in raw_logs:
@@ -108,7 +109,7 @@ def main():
         count += 1
         try:
             post_new(commit)
-            print(f"({count}/{len(commits)}): tweeted {commit.commit_sha_short} by {commit.author_handle}")
+            print(f"({count}/{len(commits)}): tweeted {commit.commit_sha_short} by {commit.committer_handle}")
         except Exception as e:
             print(vars(commit))
             import traceback; traceback.print_exception(type(e), e, e.__traceback__)
