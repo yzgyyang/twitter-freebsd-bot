@@ -24,8 +24,8 @@ api = tweepy.API(auth)
 UPDATE_INTERVAL = 180.0 # seconds
 
 TWEET_LIMIT = 280
-BASEDIR_LIMIT = 3
-BASEDIR_CHAR_LIMIT = 40
+BASEDIR_LIMIT = 2
+BASEDIR_CHAR_LIMIT = 30
 
 TWEET_TEMPLATE = "{author_info}{committer_handle}@ on {basedirs} ({sha}):\n\n"
 TWEET_TEMPLATE += "{msg}\n\n"
