@@ -5,6 +5,8 @@ META = (
     "PR:",
     "Reviewed by:",
     "Reviewed-by:",
+    "Requested by:",
+    "Requested-by:",
     "Approved by:",
     "Approved-by:",
     "Submitted by:",
