@@ -3,6 +3,7 @@ import re
 
 META = (
     "PR:",
+    "Fixes:",
     "Reviewed by:",
     "Reviewed-by:",
     "Requested by:",
@@ -12,6 +13,7 @@ META = (
     "Submitted by:",
     "Submitted-by:",
     "Reported by:",
+    "Reported By:", # Lol
     "Reported-by:",
     "Obtained from:",
     "Obtained-from:",
