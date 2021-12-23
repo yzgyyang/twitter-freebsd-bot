@@ -23,7 +23,7 @@ api = tweepy.API(auth)
 
 UPDATE_INTERVAL = 180.0 # seconds
 
-TWEET_LIMIT = 280
+TWEET_LIMIT = 270
 BASEDIR_LIMIT = 2
 BASEDIR_CHAR_LIMIT = 30
 
@@ -32,6 +32,7 @@ TWEET_TEMPLATE += "{msg}\n\n"
 TWEET_TEMPLATE += "https://cgit.freebsd.org/src/commit/?id={sha}"
 
 
+# https://stackoverflow.com/questions/17215400/format-string-unused-named-arguments
 class SafeDict(dict):
     def __missing__(self, key):
         return '{' + key + '}'
@@ -85,7 +86,7 @@ def get_last_tweet_commit_sha():
 
 
 def get_git_commits_from(commit_sha):
-    repo.remotes.origin.pull()
+    repo.remotes.origin.pull("main")
     raw_logs = g.log("--reverse", "--ancestry-path", f"{commit_sha}...main", "--pretty=full").split("\n")
     commits = []
     cur_log = []
@@ -125,6 +126,6 @@ if __name__ == "__main__":
         try:
             main()
             succeeded += 1
-        except git.exc.GitCommandError as e:
+        except Exception as e:
             print(e)
         time.sleep(UPDATE_INTERVAL - ((time.time() - starttime) % UPDATE_INTERVAL))
