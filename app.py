@@ -70,14 +70,22 @@ def post_new(commit):
         basedirs=basedirs,
     )
 
-    cur_tweet = TWEET_TEMPLATE.format_map(commit_info)
-    char_count_left = TWEET_LIMIT - len(cur_tweet)
-    commit_msg_body = commit.commit_msg_title + "\n\n" + commit.commit_msg_body
-    if len(commit_msg_body) > char_count_left:
-        commit_msg_body = commit_msg_body[:char_count_left] + "...\n"
-    cur_tweet = cur_tweet.format_map(SafeDict(msg=commit_msg_body))
+    cur_tweet_limit = TWEET_LIMIT
+    while True:
+        cur_tweet = TWEET_TEMPLATE.format_map(commit_info)
+        char_count_left = cur_tweet_limit - len(cur_tweet)
+        commit_msg_body = commit.commit_msg_title + "\n\n" + commit.commit_msg_body
+        if len(commit_msg_body) > char_count_left:
+            commit_msg_body = commit_msg_body[:char_count_left] + "...\n"
+        cur_tweet = cur_tweet.format_map(SafeDict(msg=commit_msg_body))
 
-    api.update_status(cur_tweet, hide_media=True)
+        try:
+            api.update_status(cur_tweet, hide_media=True)
+        except tweepy.error.TweepError:
+            print(f"caught exception - shorten the tweet {commit.commit_sha_short} by {commit.committer_handle}")
+            cur_tweet_limit -= 1
+            continue
+        break
 
 
 def get_last_tweet_commit_sha():

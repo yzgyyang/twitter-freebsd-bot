@@ -50,7 +50,7 @@ class BSDCommit:
             # "commit 17eba5e32a2cf7a217bb9f1e5dcca351f2b71cfc"
             if msg.startswith("commit ") and not self.commit_sha:
                 self.commit_sha = msg.split("commit ")[1].strip()
-                self.commit_sha_short = self.commit_sha[:8]
+                self.commit_sha_short = self.commit_sha[:10]
             # "Author: Guangyuan Yang <ygy@FreeBSD.org>"
             elif msg.startswith("Author: ") and not self.author:
                 r = re.search(pattern, msg)
