@@ -14,12 +14,21 @@ repo_path = environ.get("GIT_REPO_PATH")
 g = git.Git(repo_path)
 repo = git.Repo(repo_path)
 
-auth = tweepy.OAuthHandler(environ.get("TWITTER_CONSUMER_KEY"),
-                           environ.get("TWITTER_CONSUMER_SECRET"))
-auth.set_access_token(environ.get("TWITTER_KEY"),
-                      environ.get("TWITTER_SECRET"))
+# Twitter v1 API (deprecated)
+#auth = tweepy.OAuthHandler(environ.get("TWITTER_CONSUMER_KEY"),
+#                           environ.get("TWITTER_CONSUMER_SECRET"))
+#auth.set_access_token(environ.get("TWITTER_KEY"),
+#                      environ.get("TWITTER_SECRET"))
+#
+#api = tweepy.API(auth)
 
-api = tweepy.API(auth)
+# Twitter v2 API
+client = tweepy.Client(
+    consumer_key=environ.get("TWITTER_CONSUMER_KEY"),
+    consumer_secret=environ.get("TWITTER_CONSUMER_SECRET"),
+    access_token=environ.get("TWITTER_KEY"),
+    access_token_secret=environ.get("TWITTER_SECRET"),
+)
 
 UPDATE_INTERVAL = 180.0 # seconds
 
@@ -30,6 +39,8 @@ BASEDIR_CHAR_LIMIT = 30
 TWEET_TEMPLATE = "{author_info}{committer_handle}@ on {basedirs} ({sha}):\n\n"
 TWEET_TEMPLATE += "{msg}\n\n"
 TWEET_TEMPLATE += "https://cgit.freebsd.org/src/commit/?id={sha}"
+
+LAST_SHA_FILE = "./.last_sha"
 
 
 # https://stackoverflow.com/questions/17215400/format-string-unused-named-arguments
@@ -80,17 +91,32 @@ def post_new(commit):
         cur_tweet = cur_tweet.format_map(SafeDict(msg=commit_msg_body))
 
         try:
-            api.update_status(cur_tweet, hide_media=True)
-        except tweepy.error.TweepError:
+            client.create_tweet(text=cur_tweet)
+        except tweepy.errors.TooManyRequests:
+            print(f"caught 429 too many requests - cooling down")
+            return False
+        except tweepy.errors.TweepyException:
             print(f"caught exception - shorten the tweet {commit.commit_sha_short} by {commit.committer_handle}")
             cur_tweet_limit -= 1
             continue
-        break
+        return True
 
 
-def get_last_tweet_commit_sha():
-    tweet = api.user_timeline(count=1)[0].text
-    return tweet.split("\n")[0].split("(")[1].split(")")[0]
+def get_last_commit_sha():
+    try:
+        with open(LAST_SHA_FILE, "r") as f:
+            last_sha = f.read().strip()
+    except:
+        raise FileNotFoundError(f"Please create a file {LAST_SHA_FILE} with the latest sha in it.")
+    
+    print(f"latest sha is {last_sha}.")
+    return last_sha
+
+
+def set_last_commit_sha(sha):
+    with open(LAST_SHA_FILE, "w") as f:
+        f.write(sha)
+    print(f"updated latest sha to {sha}")
 
 
 def get_git_commits_from(commit_sha):
@@ -110,20 +136,26 @@ def get_git_commits_from(commit_sha):
 
 
 def main():
-    last_sha = get_last_tweet_commit_sha()
+    last_sha = get_last_commit_sha()
     commits = get_git_commits_from(last_sha)
 
     count = 0
     for commit in commits:
         count += 1
+        res = False
         try:
-            post_new(commit)
-            print(f"({count}/{len(commits)}): tweeted {commit.commit_sha_short} by {commit.committer_handle}")
+            res = post_new(commit)
+            if res:
+                set_last_commit_sha(commit.commit_sha_short)
+                print(f"({count}/{len(commits)}): tweeted {commit.commit_sha_short} by {commit.committer_handle}")
         except Exception as e:
             print(vars(commit))
             import traceback; traceback.print_exception(type(e), e, e.__traceback__)
             break
-
+        if not res:
+            print("post failed, cooling down")
+            break
+                
 
 if __name__ == "__main__":
     starttime = time.time()
